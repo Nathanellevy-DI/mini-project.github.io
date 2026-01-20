@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store, RootState } from './store/store';
 import { useSelector } from 'react-redux';
@@ -91,9 +91,9 @@ const AppRoutes: React.FC = () => {
 const App: React.FC = () => {
     return (
         <Provider store={store}>
-            <BrowserRouter>
+            <HashRouter>
                 <AppRoutes />
-            </BrowserRouter>
+            </HashRouter>
         </Provider>
     );
 };

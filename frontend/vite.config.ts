@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
     plugins: [react()],
-    base: '/mini-project.github.io/',  // Your GitHub repo name
+    base: './',  // Use relative paths for GitHub Pages
     server: {
         port: 5173,
         proxy: {
