@@ -1,9 +1,12 @@
 import axios from 'axios';
 import type { RootState } from '../store/store';
 
+// Use environment variable for API URL, fallback to local proxy
+const API_URL = import.meta.env.VITE_API_URL || '/api';
+
 // Create axios instance
 const axiosInstance = axios.create({
-    baseURL: '/api',
+    baseURL: API_URL,
     withCredentials: true, // Important for cookies
 });
 
@@ -43,7 +46,11 @@ axiosInstance.interceptors.response.use(
 
             try {
                 // Try to refresh the token
-                const response = await axios.post('/api/auth/refresh', {}, {
+                const refreshUrl = import.meta.env.VITE_API_URL
+                    ? `${import.meta.env.VITE_API_URL}/auth/refresh`
+                    : '/api/auth/refresh';
+
+                const response = await axios.post(refreshUrl, {}, {
                     withCredentials: true,
                 });
 

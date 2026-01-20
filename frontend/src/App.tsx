@@ -7,6 +7,7 @@ import { setStore } from './api/axios';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import StoryEditor from './pages/StoryEditor';
+import StoryViewer from './pages/StoryViewer';
 import LoginForm from './components/Auth/LoginForm';
 import RegisterForm from './components/Auth/RegisterForm';
 
@@ -69,10 +70,20 @@ const AppRoutes: React.FC = () => {
                 path="/stories/:id"
                 element={
                     <ProtectedRoute>
+                        <StoryViewer />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/stories/:id/edit"
+                element={
+                    <ProtectedRoute>
                         <StoryEditor />
                     </ProtectedRoute>
                 }
             />
+            {/* Public story view (no auth required) */}
+            <Route path="/story/:id" element={<StoryViewer />} />
         </Routes>
     );
 };
