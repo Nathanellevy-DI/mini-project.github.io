@@ -1,22 +1,26 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Provider, useSelector } from 'react-redux';
-import { store } from './store/store';
-import type { RootState } from './store/store';
+import { Provider } from 'react-redux';
+import { store, RootState } from './store/store';
+import { useSelector } from 'react-redux';
+import { setStore } from './api/axios';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import LoginForm from './components/Auth/LoginForm';
 import RegisterForm from './components/Auth/RegisterForm';
 
+// Set store reference for axios interceptors
+setStore(store);
+
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+    const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
     return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
 };
 
 // Public Route Component (redirect if already authenticated)
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+    const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
     return !isAuthenticated ? <>{children}</> : <Navigate to="/dashboard" />;
 };
 

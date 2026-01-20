@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios from '../api/axios';
-import type { User, UserRegistration, UserLogin } from '@story-app/shared';
+import type { User, UserRegistration, UserLogin } from '../types';
 
+// Auth state interface
 interface AuthState {
     user: User | null;
     accessToken: string | null;
@@ -10,6 +11,7 @@ interface AuthState {
     error: string | null;
 }
 
+// Initial state
 const initialState: AuthState = {
     user: null,
     accessToken: null,
@@ -25,8 +27,12 @@ export const register = createAsyncThunk(
         try {
             const response = await axios.post('/auth/register', userData);
             return response.data.data;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.error || 'Registration failed');
+        } catch (error: unknown) {
+            if (error && typeof error === 'object' && 'response' in error) {
+                const axiosError = error as { response?: { data?: { error?: string } } };
+                return rejectWithValue(axiosError.response?.data?.error || 'Registration failed');
+            }
+            return rejectWithValue('Registration failed');
         }
     }
 );
@@ -37,8 +43,12 @@ export const login = createAsyncThunk(
         try {
             const response = await axios.post('/auth/login', credentials);
             return response.data.data;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.error || 'Login failed');
+        } catch (error: unknown) {
+            if (error && typeof error === 'object' && 'response' in error) {
+                const axiosError = error as { response?: { data?: { error?: string } } };
+                return rejectWithValue(axiosError.response?.data?.error || 'Login failed');
+            }
+            return rejectWithValue('Login failed');
         }
     }
 );
@@ -48,8 +58,12 @@ export const logout = createAsyncThunk(
     async (_, { rejectWithValue }) => {
         try {
             await axios.post('/auth/logout');
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.error || 'Logout failed');
+        } catch (error: unknown) {
+            if (error && typeof error === 'object' && 'response' in error) {
+                const axiosError = error as { response?: { data?: { error?: string } } };
+                return rejectWithValue(axiosError.response?.data?.error || 'Logout failed');
+            }
+            return rejectWithValue('Logout failed');
         }
     }
 );
@@ -60,12 +74,17 @@ export const getCurrentUser = createAsyncThunk(
         try {
             const response = await axios.get('/auth/me');
             return response.data.data.user;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.error || 'Failed to get user');
+        } catch (error: unknown) {
+            if (error && typeof error === 'object' && 'response' in error) {
+                const axiosError = error as { response?: { data?: { error?: string } } };
+                return rejectWithValue(axiosError.response?.data?.error || 'Failed to get user');
+            }
+            return rejectWithValue('Failed to get user');
         }
     }
 );
 
+// Auth slice
 const authSlice = createSlice({
     name: 'auth',
     initialState,
@@ -75,6 +94,11 @@ const authSlice = createSlice({
         },
         clearError: (state) => {
             state.error = null;
+        },
+        logoutLocal: (state) => {
+            state.user = null;
+            state.accessToken = null;
+            state.isAuthenticated = false;
         },
     },
     extraReducers: (builder) => {
@@ -134,5 +158,5 @@ const authSlice = createSlice({
     },
 });
 
-export const { setAccessToken, clearError } = authSlice.actions;
+export const { setAccessToken, clearError, logoutLocal } = authSlice.actions;
 export default authSlice.reducer;

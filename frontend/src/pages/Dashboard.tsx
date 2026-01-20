@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { fetchStories } from '../store/storySlice';
 import { logout } from '../store/authSlice';
-import type { AppDispatch, RootState } from '../store/store';
+import type { RootState, AppDispatch } from '../store/store';
+import type { Story } from '../types';
 
 const Dashboard: React.FC = () => {
     const dispatch = useDispatch<AppDispatch>();
@@ -25,20 +26,20 @@ const Dashboard: React.FC = () => {
             {/* Navbar */}
             <div className="navbar bg-base-100 shadow-lg">
                 <div className="flex-1">
-                    <a className="btn btn-ghost normal-case text-xl">📖 StoryTeller</a>
+                    <span className="btn btn-ghost normal-case text-xl">📖 StoryTeller</span>
                 </div>
                 <div className="flex-none gap-2">
                     <div className="dropdown dropdown-end">
                         <label tabIndex={0} className="btn btn-ghost btn-circle avatar placeholder">
                             <div className="bg-neutral-focus text-neutral-content rounded-full w-10">
-                                <span>{user?.username.charAt(0).toUpperCase()}</span>
+                                <span>{user?.username?.charAt(0).toUpperCase() || 'U'}</span>
                             </div>
                         </label>
                         <ul tabIndex={0} className="mt-3 p-2 shadow menu menu-compact dropdown-content bg-base-100 rounded-box w-52">
                             <li className="menu-title">
-                                <span>{user?.username}</span>
+                                <span>{user?.username || 'User'}</span>
                             </li>
-                            <li><a onClick={handleLogout}>Logout</a></li>
+                            <li><button onClick={handleLogout}>Logout</button></li>
                         </ul>
                     </div>
                 </div>
@@ -75,7 +76,7 @@ const Dashboard: React.FC = () => {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {stories.map((story) => (
+                        {stories.map((story: Story) => (
                             <div
                                 key={story.id}
                                 className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow cursor-pointer"

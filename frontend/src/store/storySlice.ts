@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from '../api/axios';
-import type { Story, StoryCreate, StoryUpdate } from '@story-app/shared';
+import type { Story, StoryCreate, StoryUpdate } from '../types';
 
+// Story state interface
 interface StoryState {
     stories: Story[];
     currentStory: Story | null;
@@ -9,6 +10,7 @@ interface StoryState {
     error: string | null;
 }
 
+// Initial state
 const initialState: StoryState = {
     stories: [],
     currentStory: null,
@@ -22,9 +24,13 @@ export const fetchStories = createAsyncThunk(
     async (_, { rejectWithValue }) => {
         try {
             const response = await axios.get('/stories');
-            return response.data.data.stories;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.error || 'Failed to fetch stories');
+            return response.data.data.stories || [];
+        } catch (error: unknown) {
+            if (error && typeof error === 'object' && 'response' in error) {
+                const axiosError = error as { response?: { data?: { error?: string } } };
+                return rejectWithValue(axiosError.response?.data?.error || 'Failed to fetch stories');
+            }
+            return rejectWithValue('Failed to fetch stories');
         }
     }
 );
@@ -35,8 +41,12 @@ export const fetchStory = createAsyncThunk(
         try {
             const response = await axios.get(`/stories/${id}`);
             return response.data.data.story;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.error || 'Failed to fetch story');
+        } catch (error: unknown) {
+            if (error && typeof error === 'object' && 'response' in error) {
+                const axiosError = error as { response?: { data?: { error?: string } } };
+                return rejectWithValue(axiosError.response?.data?.error || 'Failed to fetch story');
+            }
+            return rejectWithValue('Failed to fetch story');
         }
     }
 );
@@ -47,8 +57,12 @@ export const createStory = createAsyncThunk(
         try {
             const response = await axios.post('/stories', storyData);
             return response.data.data.story;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.error || 'Failed to create story');
+        } catch (error: unknown) {
+            if (error && typeof error === 'object' && 'response' in error) {
+                const axiosError = error as { response?: { data?: { error?: string } } };
+                return rejectWithValue(axiosError.response?.data?.error || 'Failed to create story');
+            }
+            return rejectWithValue('Failed to create story');
         }
     }
 );
@@ -59,8 +73,12 @@ export const updateStory = createAsyncThunk(
         try {
             const response = await axios.put(`/stories/${id}`, data);
             return response.data.data.story;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.error || 'Failed to update story');
+        } catch (error: unknown) {
+            if (error && typeof error === 'object' && 'response' in error) {
+                const axiosError = error as { response?: { data?: { error?: string } } };
+                return rejectWithValue(axiosError.response?.data?.error || 'Failed to update story');
+            }
+            return rejectWithValue('Failed to update story');
         }
     }
 );
@@ -71,12 +89,17 @@ export const deleteStory = createAsyncThunk(
         try {
             await axios.delete(`/stories/${id}`);
             return id;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.error || 'Failed to delete story');
+        } catch (error: unknown) {
+            if (error && typeof error === 'object' && 'response' in error) {
+                const axiosError = error as { response?: { data?: { error?: string } } };
+                return rejectWithValue(axiosError.response?.data?.error || 'Failed to delete story');
+            }
+            return rejectWithValue('Failed to delete story');
         }
     }
 );
 
+// Story slice
 const storySlice = createSlice({
     name: 'stories',
     initialState,

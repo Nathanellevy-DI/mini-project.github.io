@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import pool from '../config/database';
 import { authLimiter } from '../config/security';
 import { jwtConfig, bcryptRounds } from '../config/security';
@@ -9,12 +9,42 @@ import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
+// Helper function to generate tokens with proper types
+const generateAccessToken = (payload: { id: number; email: string }): string => {
+    const options: SignOptions = { expiresIn: '15m' };
+    return jwt.sign(payload, jwtConfig.accessTokenSecret, options);
+};
+
+const generateRefreshToken = (payload: { id: number; email: string }): string => {
+    const options: SignOptions = { expiresIn: '7d' };
+    return jwt.sign(payload, jwtConfig.refreshTokenSecret, options);
+};
+
 // Register endpoint
 router.post('/register', authLimiter, async (req: Request, res: Response): Promise<void> => {
     try {
-        // Validate input
-        const validatedData = registerSchema.parse(req.body);
-        const { username, email, password } = validatedData;
+        // Validate input using safeParse
+        const validationResult = registerSchema.safeParse(req.body);
+
+        if (!validationResult.success) {
+            const errors: Record<string, string[]> = {};
+            validationResult.error.errors.forEach((error) => {
+                const path = error.path.join('.');
+                if (!errors[path]) {
+                    errors[path] = [];
+                }
+                errors[path].push(error.message);
+            });
+
+            res.status(400).json({
+                success: false,
+                error: 'Validation failed',
+                errors,
+            });
+            return;
+        }
+
+        const { username, email, password } = validationResult.data;
 
         // Hash password
         const passwordHash = await bcrypt.hash(password, bcryptRounds);
@@ -30,17 +60,8 @@ router.post('/register', authLimiter, async (req: Request, res: Response): Promi
         const user = result.rows[0];
 
         // Generate tokens
-        const accessToken = jwt.sign(
-            { id: user.id, email: user.email },
-            jwtConfig.accessTokenSecret,
-            { expiresIn: jwtConfig.accessTokenExpiry }
-        );
-
-        const refreshToken = jwt.sign(
-            { id: user.id, email: user.email },
-            jwtConfig.refreshTokenSecret,
-            { expiresIn: jwtConfig.refreshTokenExpiry }
-        );
+        const accessToken = generateAccessToken({ id: user.id, email: user.email });
+        const refreshToken = generateRefreshToken({ id: user.id, email: user.email });
 
         // Set refresh token as HTTP-only cookie
         res.cookie('refreshToken', refreshToken, {
@@ -63,17 +84,54 @@ router.post('/register', authLimiter, async (req: Request, res: Response): Promi
             },
             message: 'Registration successful',
         });
-    } catch (error) {
-        throw error; // Let error handler middleware handle it
+    } catch (error: unknown) {
+        console.error('Registration error:', error);
+
+        // Handle PostgreSQL unique constraint errors
+        if (error && typeof error === 'object' && 'code' in error) {
+            const pgError = error as { code: string; constraint?: string };
+            if (pgError.code === '23505') {
+                const field = pgError.constraint?.includes('email') ? 'email' : 'username';
+                res.status(409).json({
+                    success: false,
+                    error: `This ${field} is already registered.`,
+                });
+                return;
+            }
+        }
+
+        res.status(500).json({
+            success: false,
+            error: 'Registration failed. Please try again.',
+        });
     }
 });
 
 // Login endpoint
 router.post('/login', authLimiter, async (req: Request, res: Response): Promise<void> => {
     try {
-        // Validate input
-        const validatedData = loginSchema.parse(req.body);
-        const { email, password } = validatedData;
+        // Validate input using safeParse
+        const validationResult = loginSchema.safeParse(req.body);
+
+        if (!validationResult.success) {
+            const errors: Record<string, string[]> = {};
+            validationResult.error.errors.forEach((error) => {
+                const path = error.path.join('.');
+                if (!errors[path]) {
+                    errors[path] = [];
+                }
+                errors[path].push(error.message);
+            });
+
+            res.status(400).json({
+                success: false,
+                error: 'Validation failed',
+                errors,
+            });
+            return;
+        }
+
+        const { email, password } = validationResult.data;
 
         // Find user by email
         const result = await pool.query(
@@ -105,17 +163,8 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
         }
 
         // Generate tokens
-        const accessToken = jwt.sign(
-            { id: user.id, email: user.email },
-            jwtConfig.accessTokenSecret,
-            { expiresIn: jwtConfig.accessTokenExpiry }
-        );
-
-        const refreshToken = jwt.sign(
-            { id: user.id, email: user.email },
-            jwtConfig.refreshTokenSecret,
-            { expiresIn: jwtConfig.refreshTokenExpiry }
-        );
+        const accessToken = generateAccessToken({ id: user.id, email: user.email });
+        const refreshToken = generateRefreshToken({ id: user.id, email: user.email });
 
         // Set refresh token as HTTP-only cookie
         res.cookie('refreshToken', refreshToken, {
@@ -139,7 +188,11 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
             message: 'Login successful',
         });
     } catch (error) {
-        throw error;
+        console.error('Login error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Login failed. Please try again.',
+        });
     }
 });
 
@@ -163,11 +216,7 @@ router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
         };
 
         // Generate new access token
-        const accessToken = jwt.sign(
-            { id: decoded.id, email: decoded.email },
-            jwtConfig.accessTokenSecret,
-            { expiresIn: String(jwtConfig.accessTokenExpiry) }
-        );
+        const accessToken = generateAccessToken({ id: decoded.id, email: decoded.email });
 
         res.json({
             success: true,
@@ -216,7 +265,11 @@ router.get('/me', authenticate, async (req: Request, res: Response): Promise<voi
             },
         });
     } catch (error) {
-        throw error;
+        console.error('Get user error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get user',
+        });
     }
 });
 
