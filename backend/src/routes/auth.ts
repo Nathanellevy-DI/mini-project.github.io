@@ -166,7 +166,7 @@ router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
         const accessToken = jwt.sign(
             { id: decoded.id, email: decoded.email },
             jwtConfig.accessTokenSecret,
-            { expiresIn: jwtConfig.accessTokenExpiry } as jwt.SignOptions
+            { expiresIn: String(jwtConfig.accessTokenExpiry) }
         );
 
         res.json({
