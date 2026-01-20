@@ -6,6 +6,7 @@ import { useSelector } from 'react-redux';
 import { setStore } from './api/axios';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
+import StoryEditor from './pages/StoryEditor';
 import LoginForm from './components/Auth/LoginForm';
 import RegisterForm from './components/Auth/RegisterForm';
 
@@ -53,6 +54,22 @@ const AppRoutes: React.FC = () => {
                 element={
                     <ProtectedRoute>
                         <Dashboard />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/stories/new"
+                element={
+                    <ProtectedRoute>
+                        <StoryEditor />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/stories/:id"
+                element={
+                    <ProtectedRoute>
+                        <StoryEditor />
                     </ProtectedRoute>
                 }
             />
